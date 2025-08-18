@@ -3,7 +3,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 from datetime import datetime
 import time
-import json
+import json, os
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,9 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-creds=credentials.Certificate('firebase_creds.json')
+firebase_json = os.getenv("FIREBASE_JSON")
+creds_dict = json.loads(firebase_json)
+creds = credentials.Certificate(creds_dict)
 firebase_admin.initialize_app(creds,{'databaseURL': 'https://behzad-db-default-rtdb.asia-southeast1.firebasedatabase.app/'})
-
 
 @app.websocket('/ws')
 async def handle_user(ws: WS):
@@ -75,12 +76,8 @@ async def handle_user(ws: WS):
                 print(ws)
                 await send_message(request["text"], data, ws)
 
-
-
     except WebSocketDisconnect:
         update_status(False, data['user_id'])
-
-
 
 
 @app.get('/id_available/{id}')
@@ -208,8 +205,6 @@ async def send_message(text, data, ws):           ### updated
                 'is_me': True
                 }))
 
-            #shared_window.window.evaluate_js(f"add_message({key}, {json.dumps(text)}, '{time_}', {json.dumps(True)})")
-
 
         chat_space=db.reference(f'/chats/{data["chat_key"]}')
         db.reference(f'/users/{user_id}/listen/contacts/{data["receiver"]}').update({
@@ -273,7 +268,6 @@ async def live_updater(event, ws, data):                        ### new
                 'new_count': 1,
                 'status': 'Active'
                 }))
-            #shared_window.window.evaluate_js(f"make_contact_button({json.dumps(id)}, '', '1', 'Active')")
 
             if data['i_added'] is True:
                 data['i_added']=False
@@ -286,8 +280,6 @@ async def live_updater(event, ws, data):                        ### new
                 'count': 1,
                 }))
 
-            #shared_window.window.evaluate_js(f"notification({json.dumps(id)},'{json.dumps(id)} has added you', '1')")
-
             return
         
 
@@ -299,8 +291,6 @@ async def live_updater(event, ws, data):                        ### new
                 'id': id,
                 'last_message': last
                 }))
-
-            #shared_window.window.evaluate_js(f"update_last_message({json.dumps(id)}, {json.dumps(last)})")
 
         if 'new_messages_count' in data_:       ### live messages
             if event.data['new_messages_count']==0: return
@@ -317,7 +307,7 @@ async def live_updater(event, ws, data):                        ### new
                 'time': message['time'],
                 'is_me': False
                 }))
-                #shared_window.window.evaluate_js(f"add_message({stamp}, {json.dumps(message['content'])}, {json.dumps(message['time'])}, {json.dumps(False)})")
+
                 db.reference(f'/users/{id}/listen/contacts/{user_id}').update({'he_opened': True})
                 db.reference(f'/users/{user_id}/listen/contacts/{id}').update({'new_messages_count': 0})
             else:
@@ -328,7 +318,6 @@ async def live_updater(event, ws, data):                        ### new
                 'content': f'{id}: {content}...',
                 'count': db.reference(f'/users/{user_id}/listen/contacts/{id}/new_messages_count').get()
                 }))
-                #shared_window.window.evaluate_js(f"notification({json.dumps(id)}, {json.dumps(f'{id}: {content}...')}, '{db.reference(f'/users/{user_id}/listen/contacts/{id}/new_messages_count').get()}')")
 
             return
 
@@ -338,7 +327,6 @@ async def live_updater(event, ws, data):                        ### new
                 await ws.send_text(json.dumps({
                 'type': 'update_seen'
                 }))
-                #shared_window.window.evaluate_js('update_seen()')
             return
 
         if 'status' in data_:      ### live status update
@@ -350,184 +338,3 @@ async def live_updater(event, ws, data):                        ### new
                 'id': id,
                 'status': status
                 }))
-
-            #shared_window.window.evaluate_js(f'update_status({json.dumps(id)}, "{status}")')
-
-
-# class API:
-
-#     # def __init__(self):           ### updated
-#     #     creds=credentials.Certificate('firebase_creds.json')
-#     #     firebase_admin.initialize_app(creds,{'databaseURL': 'https://behzad-db-default-rtdb.asia-southeast1.firebasedatabase.app/'})
-
-
-#     # def is_id_available(self, id):           ### updated
-#     #     if db.reference(f'/users/{id}').get() is None:
-#     #        return True
-#     #     else: 
-#     #        return False
-
-#     # def create_account(self,name,id,password):           ### updated
-#     #     global user_id
-#     #     db.reference('/users').child(id).set({'name':name, 'pass':password, 'status': 'Active', 'listen': {'contacts': {'empty':'empty'}}})
-#     #     db.reference('/admin/user_ids/').update({id: name})
-#     #     user_id=id
-
-
-#     # def login(self, id, password):           ### updated
-#     #     global user_id
-#     #     print(id)
-#     #     if db.reference(f'/users/{id}').get() is not None:
-#     #         if db.reference(f'/users/{id}/pass').get()==password:
-#     #             user_id=id
-#     #             self.update_status(True)
-#     #             return True
-#     #         else: return 'Incorrect password'
-#     #     else: return 'Username not found'
-
-
-#     # def update_status(self, switch: bool):           ### updated
-#     #     global user_id
-#     #     if user_id is not None:
-#     #         if switch:
-#     #             state="Active"
-#     #         else:
-#     #             state=f'Last online: {datetime.now().strftime("%I:%M %p, %d %b %Y")}'
-
-#     #         db.reference(f'/users/{user_id}').update({'status':state})
-#     #         if db.reference(f'/users/{user_id}/listen/contacts/empty').get() is None:
-#     #             ids=db.reference(f'/users/{user_id}/listen/contacts').get().keys()
-#     #             for id in ids:
-#     #                 db.reference(f'/users/{id}/listen/contacts/{user_id}').update({'status':state})
-        
-
-
-#     # def add_contact(self, id):         ### updated
-#     #     global user_id, receiver, i_added, new_added, chat_key
-
-#     #     print()
-
-#     #     if db.reference(f'/users/{id}').get() is not None and db.reference(f'/users/{user_id}/listen/contacts/{id}').get() is None:
-#     #         receiver=id
-#     #         i_added=True
-#     #         new_added=True
-
-#     #         chat_key=db.reference('/chats').push().key
-
-#     #         me = db.reference(f'/users/{user_id}/listen/contacts')
-#     #         other = db.reference(f'/users/{id}/listen/contacts')
-
-#     #         me.child(id).set({
-#     #             'he_opened':False,
-#     #             'key':chat_key,
-#     #             'new_messages_count':0,
-#     #             'status': self.get_status(id)
-#     #             })
-
-#     #         if db.reference(f'/users/{user_id}/listen/contacts/empty').get() is not None: 
-#     #             me.child('empty').delete()
-
-#     #         other.child(user_id).set({
-#     #             'he_opened':False,
-#     #             'key':chat_key,
-#     #             'new_messages_count':0,
-#     #             'status': 'Active'
-#     #             })
-#     #         if db.reference(f'/users/{id}/listen/contacts/empty').get() is not None: 
-#     #             other.child('empty').delete()
-
-#     #         self.send_message(f"Hi, I'm {user_id}. Lets chat!")
-
-#     #         return True
-
-#     #     else: return False
-
-
-#     # def get_contact_list(self):           ### updated
-#     #     if db.reference(f'/users/{user_id}/listen/contacts/empty').get() is not None: 
-#     #         return False
-#     #     else:
-#     #         contacts = db.reference(f'/users/{user_id}/listen/contacts').get()
-#     #         data = []
-#     #         for contact_id, contact_data in contacts.items():
-#     #             data.append([contact_id, contact_data.get('last_message')[:20].replace("\n", "").replace("\r", "")+'...', contact_data.get('new_messages_count'), contact_data.get('status')])
-#     #         return data
-
-    
-#     def send_message(self, text):           ### updated
-#         key=int(time.time())
-#         time_=datetime.now().strftime("%I:%M %p, %d %b %Y")
-#         message={
-#             'time':time_,
-#             'content': text,
-#             'sender':user_id,
-#             }
-        
-#         global chat_key, receiver, new_added
-
-#         if not new_added:
-#             shared_window.window.evaluate_js(f"add_message({key}, {json.dumps(text)}, '{time_}', {json.dumps(True)})")
-
-
-#         chat_space=db.reference(f'/chats/{chat_key}')
-#         db.reference(f'/users/{user_id}/listen/contacts/{receiver}').update({
-#             'he_opened': False,
-#             'last_message':f'You: {text}'
-#             })
-
-#         count = db.reference(f'/users/{receiver}/listen/contacts/{user_id}/new_messages_count').get()
-#         db.reference(f'/users/{receiver}/listen/contacts/{user_id}').update({
-#             'new_messages_count': count+1,
-#             'last_message':f'{user_id}: {text}'
-#             })
-        
-#         chat_space.child(str(key)).set(message)
-
-#         if new_added:
-#             new_added=False
-#             chat_key=None
-
-#     def init_account(self):     ### updated
-#         global user_id
-
-#         db.reference(f'/users/{user_id}/listen').listen(live_updater)
-
-
-#     def open_chat(self, id):           ### updated
-#         global user_id, chat_key, receiver
-#         chat_key=db.reference(f'/users/{user_id}/listen/contacts/{id}/key').get()
-#         if chat_key is not None:
-#             receiver=id
-
-#             count=db.reference(f'/users/{user_id}/listen/contacts/{id}/new_messages_count').get()
-#             is_new=True
-#             if count==0: 
-#                 is_new=False
-#                 count=db.reference(f'/users/{id}/listen/contacts/{user_id}/new_messages_count').get()
-
-#             db.reference(f'/users/{id}/listen/contacts/{user_id}').update({'he_opened': True})
-#             db.reference(f'/users/{user_id}/listen/contacts/{id}').update({'new_messages_count': 0})
-
-#             return {
-#                 'chats': db.reference(f'/chats/{chat_key}').order_by_key().limit_to_last(50).get(),
-#                 'count': count,
-#                 'is_new': is_new
-#                 }
-
-#     def get_status(self, id):           ### updated
-#         return db.reference(f'/users/{id}/status').get()
-
-#     def get_name(self, user):           ### updated
-#         if user!="0": return db.reference(f'/users/{user}/name').get()
-#         global user_id
-#         return db.reference(f'/users/{user_id}/name').get()
-
-#     def get_all_usernames(self):           ### updated
-#         data=db.reference(f'/admin/user_ids').get()
-#         return list(data.keys())
-
-#     def printt(self,text):
-#         print(text)
-
-
-

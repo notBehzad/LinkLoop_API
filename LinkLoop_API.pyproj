@@ -24,7 +24,9 @@
     <Compile Include="main.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="user.js" />
+    <Content Include=".gitignore" />
+    <Content Include="Procfile" />
+    <Content Include=".env" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
