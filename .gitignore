@@ -12,3 +12,5 @@ firebase_creds.json
 
 # VS project files
 *.pyproj
+
+*.js
