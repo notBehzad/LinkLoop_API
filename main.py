@@ -70,8 +70,6 @@ async def handle_user(ws: WS):
                 await ws.send_text(json.dumps(open_chat(request['id'], data)))
 
             elif  request['type']=='send':
-                print('js sent a message')
-                print(ws)
                 await send_message(request["text"], data, ws)
 
     except WebSocketDisconnect:
@@ -193,8 +191,6 @@ async def send_message(text, data, ws):           ### updated
             }
         
         if not data["new_added"]:
-
-            print(ws)
             await ws.send_text(json.dumps({
                 'type': 'add_message',
                 'key': key,
